@@ -277,9 +277,13 @@
                         <div class="mb-6 rounded-xl border px-4 py-3 text-sm shadow-sm {{ empty($bulk['skipped']) ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-amber-200 bg-amber-50 text-amber-950' }}" role="status">
                             <p class="font-semibold">{{ $bulk['deleted'] }} {{ $bulk['label'] }} deleted{{ empty($bulk['skipped']) ? '.' : ', '.count($bulk['skipped']).' skipped.' }}</p>
                             @if(!empty($bulk['skipped']))
-                                <ul class="mt-2 list-disc space-y-1 pl-5">
-                                    @foreach($bulk['skipped'] as $skip)
-                                        <li><span class="font-medium">{{ $skip['name'] }}</span>: {{ $skip['reason'] }}</li>
+                                {{-- Same reason for many records: say it once, then list who it applies to. --}}
+                                <ul class="mt-2 space-y-2">
+                                    @foreach(collect($bulk['skipped'])->groupBy('reason') as $reason => $group)
+                                        <li>
+                                            <p class="font-medium">{{ $reason }}</p>
+                                            <p class="mt-0.5 text-xs opacity-80">{{ $group->count() }} affected: {{ $group->pluck('name')->take(15)->implode(', ') }}{{ $group->count() > 15 ? ' and '.($group->count() - 15).' more' : '' }}</p>
+                                        </li>
                                     @endforeach
                                 </ul>
                             @endif

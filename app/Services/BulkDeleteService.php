@@ -129,13 +129,22 @@ class BulkDeleteService
 
     private function nameOf(Model $record): string
     {
+        $id = '#'.$record->getKey();
+
+        // Inventory deliveries are told apart by item and lot.
+        if ($record->getAttribute('item_name')) {
+            $lot = $record->getAttribute('lot_number');
+
+            return \Illuminate\Support\Str::limit($record->getAttribute('item_name').($lot ? ' · lot '.$lot : ''), 60).' ('.$id.')';
+        }
+
         foreach (['name', 'title', 'sales_id', 'batch_number', 'lot_number', 'subject', 'recipient_email', 'label', 'value', 'type'] as $field) {
             $value = $record->getAttribute($field);
             if (is_scalar($value) && trim((string) $value) !== '') {
-                return \Illuminate\Support\Str::limit((string) $value, 50);
+                return \Illuminate\Support\Str::limit((string) $value, 50).' ('.$id.')';
             }
         }
 
-        return '#'.$record->getKey();
+        return $id;
     }
 }
