@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Product;
 use App\Support\TablePageSize;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -86,11 +87,26 @@ class ProductController extends Controller
 
     public function destroy(Request $request, Product $product): RedirectResponse
     {
-        if ($product->image_path) {
-            Storage::disk('public')->delete($product->image_path);
+        $imagePath = $product->image_path;
+
+        try {
+            $product->delete();
+        } catch (QueryException $e) {
+            // A product that production samples, sales or batches still point to cannot go: the
+            // database refuses it. Say so, and leave the product and its image untouched.
+            if ((string) $e->getCode() === '23000') {
+                return back()->withErrors([
+                    'product' => '"'.$product->name.'" is used by other records (for example production samples, sales or batches), so it cannot be deleted. Remove or reassign those records first.',
+                ]);
+            }
+
+            throw $e;
         }
 
-        $product->delete();
+        // Only once the product is really gone is its image removed.
+        if ($imagePath) {
+            Storage::disk('public')->delete($imagePath);
+        }
 
         if ($request->filled('from_ecommerce_hub')) {
             return redirect()

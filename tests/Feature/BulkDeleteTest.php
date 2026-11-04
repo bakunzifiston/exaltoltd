@@ -79,4 +79,25 @@ class BulkDeleteTest extends TestCase
         $this->actingAs($owner)->get(route('admin.contact-submissions.index'))
             ->assertOk()->assertSee(route('admin.bulk-delete', 'contact-submissions'), false);
     }
+
+    public function test_deleting_a_product_that_is_in_use_shows_a_message_instead_of_crashing(): void
+    {
+        $owner = $this->owner();
+        $product = $this->product(1);
+        $product->image_path = 'products/keep-me.jpg';
+        $product->save();
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('products/keep-me.jpg', 'x');
+
+        // Simulate the database refusing the delete because other records still point to the product.
+        Product::deleting(function () {
+            throw new \Illuminate\Database\QueryException('mysql', 'delete from products', [], new \PDOException('FK', 23000));
+        });
+
+        $this->actingAs($owner)->from(route('admin.products.index'))->delete(route('admin.products.destroy', $product))
+            ->assertRedirect(route('admin.products.index'))
+            ->assertSessionHasErrors('product');
+        $this->assertDatabaseHas('products', ['id' => $product->id]);
+        \Illuminate\Support\Facades\Storage::disk('public')->assertExists('products/keep-me.jpg');
+    }
 }
