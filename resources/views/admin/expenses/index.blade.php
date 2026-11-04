@@ -208,7 +208,7 @@
                     </div>
                     <a href="{{ route('admin.expenses.index', ['year' => $year, 'tab' => 'all']) }}" class="text-sm font-medium text-teal-700 hover:underline">View all &rarr;</a>
                 </div>
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <table data-bulk="{{ route('admin.bulk-delete', 'expenses') }}" class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50">
                         <tr>
                             <th class="px-4 py-3 text-left font-semibold text-slate-600">Name</th>
@@ -255,7 +255,7 @@
                 <h3 class="text-base font-semibold text-slate-900">All expenses &mdash; {{ $year }}</h3>
                 <p class="text-sm text-slate-500">{{ number_format($allExpensesCount) }} {{ $allExpensesCount === 1 ? 'entry' : 'entries' }} &middot; includes expenses and the raw materials each production batch consumed (COGS). Raw-material purchases are stock, not expenses, until production uses them.</p>
             </div>
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'expenses') }}" class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50">
                     <tr>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Name</th>

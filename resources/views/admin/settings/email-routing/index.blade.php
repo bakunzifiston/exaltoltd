@@ -29,7 +29,7 @@
                             <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500">{{ $label }}</h3>
                             <code class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">{{ $event }}</code>
                         </div>
-                        <table class="min-w-full text-sm">
+                        <table data-bulk="{{ route('admin.bulk-delete', 'email-routing') }}" class="min-w-full text-sm">
                             <thead class="bg-slate-50">
                                 <tr>
                                     <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Recipient Email</th>

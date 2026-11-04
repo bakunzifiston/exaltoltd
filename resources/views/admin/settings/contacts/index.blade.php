@@ -25,7 +25,7 @@
                     <div class="border-b border-slate-100 px-5 py-3">
                         <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500">{{ $typeLabels[$type] ?? ucfirst($type) }}</h3>
                     </div>
-                    <table class="min-w-full text-sm">
+                    <table data-bulk="{{ route('admin.bulk-delete', 'site-contacts') }}" class="min-w-full text-sm">
                         <thead class="bg-slate-50">
                             <tr>
                                 <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Label</th>

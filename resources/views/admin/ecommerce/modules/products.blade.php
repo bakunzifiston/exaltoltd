@@ -37,7 +37,7 @@
                 @endif
             </div>
         </form>
-        <x-admin.ecommerce-data-table>
+        <x-admin.ecommerce-data-table data-bulk="{{ route('admin.bulk-delete', 'products') }}">
                 <thead>
                     @php($nextDirection = $direction === 'asc' ? 'desc' : 'asc')
                     <tr>

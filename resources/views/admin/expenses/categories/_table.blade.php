@@ -10,7 +10,7 @@
         <x-admin.expense-type-badge :type="$badgeType" />
     </div>
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <table data-bulk="{{ route('admin.bulk-delete', 'expense-categories') }}" class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50">
                 <tr>
                     <th class="w-12 px-4 py-3 text-left font-semibold text-slate-600">#</th>
@@ -21,7 +21,7 @@
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($categories as $index => $category)
-                    <tr x-show="editingId !== {{ $category->id }}">
+                    <tr x-show="editingId !== {{ $category->id }}" data-bulk-id="{{ $category->id }}">
                         <td class="px-4 py-3 text-slate-500">{{ $index + 1 }}</td>
                         <td class="px-4 py-3 font-medium text-slate-900">{{ $category->name }}</td>
                         <td class="px-4 py-3 text-right text-slate-700">{{ number_format($category->expenses_count) }}</td>

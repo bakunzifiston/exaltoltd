@@ -21,7 +21,7 @@
         </form>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'contact-submissions') }}" class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50">
                     <tr>
                         <th class="px-4 py-3 text-left font-semibold text-slate-600">Name</th>

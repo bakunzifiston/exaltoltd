@@ -20,7 +20,7 @@
         </form>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'loans') }}" class="min-w-full text-sm">
                 <thead class="bg-slate-50 text-left text-slate-600"><tr><th class="px-4 py-3">Lender</th><th class="px-4 py-3">Start</th><th class="px-4 py-3 text-right">Principal</th><th class="px-4 py-3">Rate</th><th class="px-4 py-3 text-right">Outstanding ({{ $asOf->format('M Y') }})</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Record a repayment</th><th class="px-4 py-3"></th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($loans as $loan)
@@ -55,7 +55,7 @@
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
             <h3 class="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800">Recent repayments</h3>
-            <table class="min-w-full text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'loan-repayments') }}" class="min-w-full text-sm">
                 <thead class="bg-slate-50 text-left text-slate-600"><tr><th class="px-4 py-3">Paid on</th><th class="px-4 py-3">Loan</th><th class="px-4 py-3 text-right">Total</th><th class="px-4 py-3 text-right">Principal</th><th class="px-4 py-3 text-right">Interest</th><th class="px-4 py-3">Reference</th><th class="px-4 py-3"></th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($repayments as $repayment)

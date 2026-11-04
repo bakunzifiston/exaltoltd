@@ -30,7 +30,7 @@
         </form>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'supplier-payments') }}" class="min-w-full text-sm">
                 <thead class="bg-slate-50 text-left text-slate-600"><tr><th class="px-4 py-3">Paid on</th><th class="px-4 py-3">Supplier</th><th class="px-4 py-3">Purchase</th><th class="px-4 py-3">Method</th><th class="px-4 py-3">From</th><th class="px-4 py-3">Reference</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3"></th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($payments as $payment)

@@ -20,7 +20,7 @@
         </form>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'fixed-assets') }}" class="min-w-full text-sm">
                 <thead class="bg-slate-50 text-left text-slate-600"><tr><th class="px-4 py-3">Asset</th><th class="px-4 py-3">Acquired</th><th class="px-4 py-3 text-right">Cost</th><th class="px-4 py-3 text-right">Monthly charge</th><th class="px-4 py-3 text-right">Accumulated ({{ $asOf->format('M Y') }})</th><th class="px-4 py-3 text-right">Net book value</th><th class="px-4 py-3">Disposed</th><th class="px-4 py-3"></th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($assets as $asset)

@@ -14,7 +14,7 @@
         </form>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'equity-movements') }}" class="min-w-full text-sm">
                 <thead class="bg-slate-50 text-left text-slate-600"><tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Type</th><th class="px-4 py-3">Description</th><th class="px-4 py-3">Account</th><th class="px-4 py-3 text-right">Amount</th><th class="px-4 py-3"></th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($movements as $movement)

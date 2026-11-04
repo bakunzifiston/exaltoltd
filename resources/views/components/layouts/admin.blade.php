@@ -269,6 +269,19 @@
 
             <main class="p-0">
                 <div class="admin-canvas">
+                    @if(session('bulk_result'))
+                        @php($bulk = session('bulk_result'))
+                        <div class="mb-6 rounded-xl border px-4 py-3 text-sm shadow-sm {{ empty($bulk['skipped']) ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-amber-200 bg-amber-50 text-amber-950' }}" role="status">
+                            <p class="font-semibold">{{ $bulk['deleted'] }} {{ $bulk['label'] }} deleted{{ empty($bulk['skipped']) ? '.' : ', '.count($bulk['skipped']).' skipped.' }}</p>
+                            @if(!empty($bulk['skipped']))
+                                <ul class="mt-2 list-disc space-y-1 pl-5">
+                                    @foreach($bulk['skipped'] as $skip)
+                                        <li><span class="font-medium">{{ $skip['name'] }}</span>: {{ $skip['reason'] }}</li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </div>
+                    @endif
                     {{ $slot }}
                 </div>
             </main>

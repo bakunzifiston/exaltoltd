@@ -16,7 +16,7 @@
         </form>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'cash-accounts') }}" class="min-w-full text-sm">
                 <thead class="bg-slate-50 text-left text-slate-600"><tr><th class="px-4 py-3">Account</th><th class="px-4 py-3">Type</th><th class="px-4 py-3">Number</th><th class="px-4 py-3 text-right">Opening balance</th><th class="px-4 py-3">Since</th><th class="px-4 py-3">Status</th><th class="px-4 py-3"></th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($accounts as $account)

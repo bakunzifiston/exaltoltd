@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Auth\LoginController;
+use App\Http\Controllers\Admin\BulkDeleteController;
 use App\Http\Controllers\Admin\CashAccountController;
 use App\Http\Controllers\Admin\ContactSubmissionController;
 use App\Http\Controllers\Admin\CustomerController;
@@ -64,6 +65,9 @@ Route::prefix('admin-app')
         // role to the screen it actually works from.
         Route::get('/', DashboardController::class)->name('dashboard');
         Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+
+        // "Delete selected" on every admin list. Each module's own permission and delete rules are applied per record.
+        Route::post('/bulk-delete/{module}', BulkDeleteController::class)->name('bulk-delete');
 
         // In-app notifications (the bell), for everyone.
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

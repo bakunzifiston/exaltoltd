@@ -40,7 +40,7 @@
             </div>
         @endif
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'sales') }}" class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left">Sale ID</th><th class="px-3 py-2 text-left">Customer</th><th class="px-3 py-2 text-left">Channel</th><th class="px-3 py-2 text-left">Invoice</th><th class="px-3 py-2 text-left">Items</th><th class="px-3 py-2 text-left">Total Revenue</th><th class="px-3 py-2 text-left">Balance Due</th><th class="px-3 py-2 text-left">Payment</th><th class="px-3 py-2 text-left">Delivery</th><th class="px-3 py-2 text-left">Sale Date</th><th class="px-3 py-2 text-left">Actions</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($sales as $sale)

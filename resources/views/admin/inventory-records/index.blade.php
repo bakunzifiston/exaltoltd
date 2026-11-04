@@ -32,7 +32,7 @@
         </form>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'inventory-records') }}" class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left">Supplier</th><th class="px-3 py-2 text-left">Invoice</th><th class="px-3 py-2 text-left">Type</th><th class="px-3 py-2 text-left">Item</th><th class="px-3 py-2 text-right">In</th><th class="px-3 py-2 text-right">Out</th><th class="px-3 py-2 text-right">On hand</th><th class="px-3 py-2 text-left">Unit Cost</th><th class="px-3 py-2 text-left">Line Value</th><th class="px-3 py-2 text-left">Total</th><th class="px-3 py-2 text-left">Paid</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Overdue</th><th class="px-3 py-2 text-left">Date</th><th class="px-3 py-2 text-left">Actions</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                 @forelse($records as $record)

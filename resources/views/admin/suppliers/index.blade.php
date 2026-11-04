@@ -37,7 +37,7 @@
         @endif
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'suppliers') }}" class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50">
                     <tr>
                         <th class="px-3 py-2 text-left">Supplier</th>
@@ -52,7 +52,7 @@
                 <tbody class="divide-y divide-slate-100">
                     @forelse($suppliers as $supplier)
                         @php($balance = max(0, (float) ($supplier->total_purchased ?? 0) - (float) ($supplier->total_paid ?? 0)))
-                        <tr class="hover:bg-slate-50/60">
+                        <tr class="hover:bg-slate-50/60" data-bulk-id="{{ $supplier->id }}">
                             <td class="px-3 py-2"><a href="{{ route('admin.suppliers.show', $supplier) }}" class="font-medium text-teal-800 hover:underline">{{ $supplier->name }}</a></td>
                             <td class="px-3 py-2 text-slate-600">
                                 {{ $supplier->phone ?? '—' }}

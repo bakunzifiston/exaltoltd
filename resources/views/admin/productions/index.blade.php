@@ -9,7 +9,7 @@
             <div class="flex gap-3"><input name="search" value="{{ $search }}" placeholder="Search batch, staff, barcode, or a raw-material lot / supplier lot…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><button class="rounded-lg border border-slate-300 px-4 py-2 text-sm">Apply</button></div>
         </form>
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table data-bulk="{{ route('admin.bulk-delete', 'productions') }}" class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left">Batch</th><th class="px-3 py-2 text-left">Product</th><th class="px-3 py-2 text-left">Raw Materials & Qty Used</th><th class="px-3 py-2 text-left">Produced</th><th class="px-3 py-2 text-left">Damaged</th><th class="px-3 py-2 text-left">Date</th><th class="px-3 py-2 text-left">Best before</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Staff</th><th class="px-3 py-2 text-left">Barcode</th><th class="px-3 py-2 text-left">Actions</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                 @forelse($productions as $production)

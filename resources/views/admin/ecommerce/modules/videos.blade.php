@@ -31,7 +31,7 @@
             </div>
             <button type="submit" class="mt-5 rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800">Upload Video</button>
         </form>
-        <x-admin.ecommerce-data-table>
+        <x-admin.ecommerce-data-table data-bulk="{{ route('admin.bulk-delete', 'videos') }}">
                 <thead>
                     <tr>
                         <th>Preview</th>
