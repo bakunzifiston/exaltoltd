@@ -23,11 +23,11 @@
         </form>
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <table class="min-w-full divide-y divide-slate-200 text-sm" @can('delete-records') data-bulk="{{ route('admin.bulk-delete', 'production-samples') }}" data-bulk-label="samples" @endcan>
                 <thead class="bg-slate-50 text-left text-slate-600"><tr><th class="px-4 py-3">Reference</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Product · batch</th><th class="px-4 py-3">Recipient</th><th class="px-4 py-3">Purpose</th><th class="px-4 py-3 text-right">Qty</th><th class="px-4 py-3 text-right">Cost</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Requested by</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($samples as $sample)
-                        <tr>
+                        <tr @if ($sample->status !== 'approved') data-bulk-id="{{ $sample->id }}" @endif>
                             <td class="px-4 py-3"><a href="{{ route('admin.production-samples.show', $sample) }}" class="font-medium text-teal-700 hover:underline">{{ $sample->reference }}</a></td>
                             <td class="px-4 py-3">{{ $sample->sample_date->format('d M Y') }}</td>
                             <td class="px-4 py-3">{{ $sample->product?->type }}<span class="block text-xs text-slate-500">{{ $sample->production?->batch_id }}</span></td>

@@ -12,6 +12,7 @@ use App\Models\TransactionDocument;
 use App\Services\ProductionSampleService;
 use App\Support\TablePageSize;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -140,6 +141,30 @@ class ProductionSampleController extends Controller
         $this->samples->cancel($productionSample, $request->user(), $data['decision_notes']);
 
         return back()->with('status', 'Sample cancelled.');
+    }
+
+    /**
+     * Removes a sample request that has no stock effect. An approved sample has taken units off its
+     * batch, so it must be reversed first ("Reverse and restock", which puts them back and records
+     * the movement); only then can it be deleted. Its attached documents go with it.
+     */
+    public function destroy(Request $request, ProductionSample $productionSample): RedirectResponse
+    {
+        abort_unless($request->user()->can('delete-records'), 403);
+
+        if ($productionSample->status === ProductionSample::APPROVED) {
+            return back()->withErrors([
+                'sample' => $productionSample->reference.' is approved, so its units have left stock. Open it and use "Reverse and restock" first, then delete it.',
+            ]);
+        }
+
+        $reference = $productionSample->reference;
+        DB::transaction(function () use ($productionSample): void {
+            $productionSample->documents()->get()->each->delete();
+            $productionSample->delete();
+        });
+
+        return redirect()->route('admin.production-samples.index')->with('status', 'Sample '.$reference.' deleted.');
     }
 
     public function uploadDocuments(Request $request, ProductionSample $productionSample): RedirectResponse

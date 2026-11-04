@@ -269,9 +269,11 @@
 
             <main class="p-0">
                 <div class="admin-canvas">
-                    @error('product')
-                        <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm" role="alert">{{ $message }}</div>
-                    @enderror
+                    @foreach(['product', 'sample'] as $deleteErrorKey)
+                        @error($deleteErrorKey)
+                            <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm" role="alert">{{ $message }}</div>
+                        @enderror
+                    @endforeach
                     @if(session('bulk_result'))
                         @php($bulk = session('bulk_result'))
                         <div class="mb-6 rounded-xl border px-4 py-3 text-sm shadow-sm {{ empty($bulk['skipped']) ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-amber-200 bg-amber-50 text-amber-950' }}" role="status">

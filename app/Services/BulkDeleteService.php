@@ -34,6 +34,7 @@ class BulkDeleteService
         'contact-submissions' => ['label' => 'messages', 'model' => \App\Models\ContactSubmission::class, 'controller' => \App\Http\Controllers\Admin\ContactSubmissionController::class, 'gates' => ['manage-catalog']],
         'sales' => ['label' => 'sales', 'model' => \App\Models\Sale::class, 'controller' => \App\Http\Controllers\Admin\SaleController::class, 'gates' => ['record-sales', 'delete-records']],
         'productions' => ['label' => 'productions', 'model' => \App\Models\Production::class, 'controller' => \App\Http\Controllers\Admin\ProductionController::class, 'gates' => ['record-production', 'delete-records']],
+        'production-samples' => ['label' => 'samples', 'model' => \App\Models\ProductionSample::class, 'controller' => \App\Http\Controllers\Admin\ProductionSampleController::class, 'gates' => ['record-samples', 'delete-records']],
         'cash-accounts' => ['label' => 'cash accounts', 'model' => \App\Models\CashAccount::class, 'controller' => \App\Http\Controllers\Admin\CashAccountController::class, 'gates' => ['view-analytics']],
         'supplier-payments' => ['label' => 'supplier payments', 'model' => \App\Models\SupplierPayment::class, 'controller' => \App\Http\Controllers\Admin\SupplierPaymentController::class, 'gates' => ['view-analytics']],
         'fixed-assets' => ['label' => 'fixed assets', 'model' => \App\Models\FixedAsset::class, 'controller' => \App\Http\Controllers\Admin\FixedAssetController::class, 'gates' => ['view-analytics']],

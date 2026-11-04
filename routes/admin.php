@@ -212,7 +212,7 @@ Route::prefix('admin-app')
 
         // Free samples from production. Approval is checked in the controller (approve-samples).
         Route::middleware('can:record-samples')->group(function (): void {
-            Route::resource('production-samples', ProductionSampleController::class)->except(['destroy']);
+            Route::resource('production-samples', ProductionSampleController::class);
             Route::prefix('production-samples/{productionSample}')->name('production-samples.')->controller(ProductionSampleController::class)->group(function (): void {
                 Route::post('/approve', 'approve')->name('approve');
                 Route::post('/reject', 'reject')->name('reject');
