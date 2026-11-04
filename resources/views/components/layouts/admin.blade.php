@@ -269,15 +269,41 @@
 
             <main class="p-0">
                 <div class="admin-canvas">
-                    @foreach(['product', 'sample'] as $deleteErrorKey)
+                    @foreach(['product', 'sample', 'production'] as $deleteErrorKey)
                         @error($deleteErrorKey)
                             <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm" role="alert">{{ $message }}</div>
                         @enderror
                     @endforeach
+                    @if(session('force_prompt'))
+                        @php($force = session('force_prompt'))
+                        <div id="forcePrompt" class="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-950 shadow-sm" role="alertdialog" aria-labelledby="forcePromptTitle">
+                            <p id="forcePromptTitle" class="text-base font-semibold">{{ count($force['ids']) }} {{ $force['label'] ?? 'record' }} {{ count($force['ids']) === 1 ? 'is' : 'are' }} in use. Delete anyway?</p>
+                            <p class="mt-1">Nothing has been deleted yet. Read what would be lost:</p>
+                            <ul class="mt-3 space-y-2">
+                                @foreach(collect($force['items'])->groupBy('detail') as $detail => $group)
+                                    <li class="rounded-lg bg-white/70 px-3 py-2">
+                                        <p class="font-medium">{{ $group->pluck('name')->take(12)->implode(', ') }}{{ $group->count() > 12 ? ' and '.($group->count() - 12).' more' : '' }}</p>
+                                        <p class="mt-0.5 text-xs">{{ $detail }}</p>
+                                    </li>
+                                @endforeach
+                            </ul>
+                            <div class="mt-4 flex flex-wrap items-center gap-3">
+                                <form method="POST" action="{{ route('admin.bulk-delete', $force['module']) }}" onsubmit="return confirm('Permanently delete {{ count($force['ids']) }} {{ $force['label'] ?? 'record' }}? This cannot be undone.')">
+                                    @csrf
+                                    <input type="hidden" name="force" value="1">
+                                    @foreach($force['ids'] as $forceId)
+                                        <input type="hidden" name="ids[]" value="{{ $forceId }}">
+                                    @endforeach
+                                    <button type="submit" class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Delete anyway</button>
+                                </form>
+                                <button type="button" onclick="document.getElementById('forcePrompt').remove()" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                            </div>
+                        </div>
+                    @endif
                     @if(session('bulk_result'))
                         @php($bulk = session('bulk_result'))
                         <div class="mb-6 rounded-xl border px-4 py-3 text-sm shadow-sm {{ empty($bulk['skipped']) ? 'border-emerald-200 bg-emerald-50 text-emerald-950' : 'border-amber-200 bg-amber-50 text-amber-950' }}" role="status">
-                            <p class="font-semibold">{{ $bulk['deleted'] }} {{ $bulk['label'] }} deleted{{ empty($bulk['skipped']) ? '.' : ', '.count($bulk['skipped']).' skipped.' }}</p>
+                            <p class="font-semibold">{{ $bulk['deleted'] }} {{ $bulk['label'] }} deleted{{ empty($bulk['skipped']) ? '.' : ', '.count($bulk['skipped']).' skipped.' }}{{ !empty($bulk['confirm']) ? ' '.count($bulk['confirm']['ids']).' waiting for your confirmation below.' : '' }}</p>
                             @if(!empty($bulk['skipped']))
                                 {{-- Same reason for many records: say it once, then list who it applies to. --}}
                                 <ul class="mt-2 space-y-2">

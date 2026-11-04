@@ -17,10 +17,18 @@ class BulkDeleteController extends Controller
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1', 'max:'.BulkDeleteService::MAX_IDS],
             'ids.*' => ['integer'],
+            'force' => ['nullable', 'boolean'],
         ]);
 
         $result = $service->delete($module, $data['ids'], $request->user());
 
-        return back()->with('bulk_result', $result);
+        $redirect = back()->with('bulk_result', $result);
+
+        // Records that are in use are not deleted yet: show what would be lost and let the user confirm.
+        if ($result['confirm'] !== null) {
+            $redirect->with('force_prompt', $result['confirm']);
+        }
+
+        return $redirect;
     }
 }

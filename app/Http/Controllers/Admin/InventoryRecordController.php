@@ -93,15 +93,24 @@ class InventoryRecordController extends Controller
         return redirect()->route('admin.inventory-records.show', $inventoryRecord)->with('status', 'Inventory record updated successfully.');
     }
 
-    public function destroy(InventoryRecord $inventoryRecord): RedirectResponse
+    public function destroy(Request $request, InventoryRecord $inventoryRecord): RedirectResponse
     {
         // Deleting financial/stock records is reserved for owner/manager.
-        abort_unless(request()->user()->can('delete-records'), 403);
+        abort_unless($request->user()->can('delete-records'), 403);
 
-        // A consumed delivery underpins FIFO cost history — never let it be removed.
-        if ($inventoryRecord->hasBeenConsumed()) {
-            return back()->withErrors([
-                'inventory' => 'This delivery has already been used in production, so it cannot be deleted (it underpins stock-cost history). Adjust quantities instead.',
+        // A delivery already used in production underpins the cost history of those batches. It may
+        // still be deleted, but only after the user has seen what that means and confirmed.
+        if ($inventoryRecord->hasBeenConsumed() && ! $request->boolean('force')) {
+            $batches = $inventoryRecord->batchesUsingThis();
+
+            return back()->with('force_prompt', [
+                'module' => 'inventory-records',
+                'label' => 'inventory records',
+                'ids' => [$inventoryRecord->id],
+                'items' => [[
+                    'name' => app(\App\Services\BulkDeleteService::class)->describe($inventoryRecord),
+                    'detail' => 'Already used in production'.($batches->isNotEmpty() ? ' ('.$batches->take(6)->implode(', ').($batches->count() > 6 ? ' and '.($batches->count() - 6).' more' : '').')' : '').'. Deleting it removes it from stock and the inventory list. Those batches keep their recorded costs, but their material trace will point to a deleted delivery.',
+                ]],
             ]);
         }
 
