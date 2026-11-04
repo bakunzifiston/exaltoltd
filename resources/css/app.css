@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+/*
+ * Exalto Green Ltd brand system (Brand Guidelines 2026).
+ * Navy leads, deep green supports, golden ochre stays rare.
+ * The legacy `teal-*` utilities used across the views are remapped to the navy scale,
+ * so every existing teal button, link and focus ring now renders in brand navy.
+ */
+@theme {
+    --font-sans: 'Source Sans 3', Arial, ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Sora', 'Source Sans 3', Arial, ui-sans-serif, system-ui, sans-serif;
+
+    --color-navy: #012b51;
+    --color-brand-green: #0d6a3a;
+    --color-ochre: #cb8d20;
+    --color-artwork-grey: #6d6e6f;
+    --color-off-white: #f5f4ef;
+
+    --color-teal-50: #eef3f8;
+    --color-teal-100: #dbe5ef;
+    --color-teal-200: #b9cbdd;
+    --color-teal-300: #8aa6c2;
+    --color-teal-400: #4f7299;
+    --color-teal-500: #1f4a78;
+    --color-teal-600: #0a3865;
+    --color-teal-700: #012b51;
+    --color-teal-800: #011f3a;
+    --color-teal-900: #011a30;
+    --color-teal-950: #01101f;
+}
+
+@layer base {
+    body {
+        font-family: var(--font-sans);
+        background-color: var(--color-off-white);
+        color: #1c2733;
+    }
+
+    h1, h2, h3, h4 {
+        font-family: var(--font-display);
+        letter-spacing: -0.01em;
+    }
+}

@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /admin-app/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /wishlist
+
+Sitemap: https://exalto.rw/sitemap.xml

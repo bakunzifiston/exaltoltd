@@ -1,0 +1,41 @@
+
+body {
+    background-color: red !important;
+}
+
+/* Sidebar background color */
+.fi-sidebar {
+    background-color: #1e3a8a !important; /* Tailwind blue-800 */
+}
+
+/* Sidebar header (logo area) */
+.fi-sidebar-header {
+    background-color: #1e40af !important; /* Tailwind blue-900 */
+}
+
+/* Sidebar item text color */
+.fi-sidebar .fi-sidebar-item {
+    color: #ffffff !important;
+}
+
+/* Sidebar item hover effect */
+.fi-sidebar .fi-sidebar-item:hover {
+    background-color: #1e40af !important; /* Slightly darker */
+    color: #ffffff !important;
+}
+
+/* Active sidebar item */
+.fi-sidebar .fi-sidebar-item-active {
+    background-color: #2563eb !important; /* Tailwind blue-600 */
+    color: #ffffff !important;
+}
+
+/* Sidebar group headers (like section titles) */
+.fi-sidebar-group {
+    color: #cbd5e1 !important; /* Tailwind slate-300 */
+}
+
+/* Sidebar submenu */
+.fi-sidebar .fi-sidebar-item .fi-sidebar-submenu {
+    background-color: #1e3a8a !important;
+}

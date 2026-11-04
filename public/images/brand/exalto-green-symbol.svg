@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="501" height="520" viewBox="0 0 501 520" role="img" aria-labelledby="title desc">
+  <title id="title">Exalto Green Ltd symbol</title>
+  <desc id="desc">Approved symbol artwork for Exalto Green Ltd.</desc>
+  <g id="symbol" shape-rendering="geometricPrecision">
+    <g id="navy-structure" fill="#012B51">
+      <path d="M244 48 L244 88 L109 165 L109 303 L76 298 L76 145 Z"/>
+      <path d="M255 108 L299 138 L299 320 L274 344 L258 366 L257 370 L255 370 Z"/>
+    </g>
+    <g id="grey-structure" fill="#6D6E6F">
+      <path d="M255 48 L424 145 L424 272 L390 276 L390 166 L255 87 Z"/>
+      <path d="M239 177 L239 361 L199 336 L199 201 Z"/>
+      <path d="M184 240 L184 327 L153 315 L153 260 Z"/>
+      <path d="M315 237 L347 259 L347 292 L315 307 Z"/>
+    </g>
+    <g id="green-growth" fill="#0D6A3A">
+      <path d="M48 314 C115 315 184 338 246 388 C243 400 240 411 237 423 C180 378 119 353 60 348 C55 337 51 326 48 314 Z"/>
+      <path d="M453 288 C451 372 396 438 279 471 L293 439 C319 397 356 361 395 340 C350 357 307 391 269 438 L260 453 C253 442 252 429 255 417 C264 378 288 345 323 322 C359 303 404 290 453 288 Z"/>
+    </g>
+    <path id="ochre-growth" fill="#CB8D20" d="M70 366 C132 365 205 402 244 471 C176 466 108 431 70 366 Z"/>
+  </g>
+</svg>

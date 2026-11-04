@@ -1,0 +1,314 @@
+# SHAKY Ltd — System Assessment & Data-Driven Decision Roadmap
+
+> **Author context:** Full-stack engineering + data analysis review of the codebase as of 2026-06-11.
+> **Scope:** What the system has today, what it is missing, and what to build so the business can make
+> reliable, data-driven decisions (pricing, cash flow, inventory, customers, production).
+>
+> Companion docs: [SYSTEM-MODULES.md](SYSTEM-MODULES.md) (how it works) · [FEATURES.md](../FEATURES.md) (roadmap items)
+
+---
+
+## 1. Executive summary
+
+The system is a working Laravel 12 ERP + storefront covering the **operational** basics: products,
+raw-material inventory with FIFO costing, production batches, multi-line sales, expenses, and a
+public shop that writes directly into the ERP sales tables. That is a solid foundation.
+
+However, the system today records **states, not events**. It stores *what things look like now*
+(current stock, current payment status) but not *what happened over time* (payments received,
+stock movements, status changes, edits). Because history is overwritten or destroyed in several
+places, most of the analytics a business needs — cash-flow timing, customer behaviour, production
+yield, accurate historical profit — **cannot be computed from the data being captured**, no matter
+how good the dashboards become.
+
+**The top 5 issues, in order of business impact:**
+
+| # | Issue | Business consequence |
+|---|-------|----------------------|
+| 1 | **No payment transactions ledger** — only a `payment_status` enum per sale; the AR migrations (`add_ar_fields_to_sales`, `add_partially_paid`, `backfill_amount_paid`) are empty no-op placeholders | Cannot record partial payments, payment dates, or methods. Cannot answer "how much cash came in this week?", build AR aging, or measure days-to-pay. `FEATURES.md` marks AR as ✅ implemented, but the schema does not support it |
+| 2 | **Stock is destructively mutated** — `productions.quantity_produced` is decremented every time a sale line is created ([SaleItem](../app/Models/SaleItem.php) / [SaleWorkflowService.php](../app/Services/SaleWorkflowService.php)) | The original batch size is permanently lost. Production yield, batch traceability, "what did we actually produce in March?" are unanswerable. No stock-movement ledger exists to reconstruct it |
+| 3 | **No customer or supplier master data** — customers are free-text `customer_name`/`customer_Phone` strings on each sale; customer **email is stored in the `barcode` column** and the delivery address in `invoice_number` | Customer lifetime value, repeat-purchase rate, segmentation, and top-customer reports are impossible to compute reliably ("Jean", "Jean M.", "JEAN" are three customers). Misused columns poison every future analysis and integration |
+| 4 | **Hard cascade deletes, no soft deletes, no audit log** — e.g. `sales.product_id` is `onDelete('cascade')`: deleting a product **silently erases its entire sales history**; sale edits delete and recreate line items | Historical reports can change or vanish retroactively. No record of who changed what. Financial figures are not trustworthy or auditable |
+| 5 | **No status/event timestamps** — payment and delivery status are overwritten in place; only `created_at`/`updated_at` exist | Cannot measure time-to-deliver, time-to-pay, fulfilment bottlenecks, or overdue ageing. The cash conversion cycle is invisible |
+
+The good news: the fixes are mostly **additive schema work** (ledger tables + master-data tables),
+and the existing service layer (`SaleWorkflowService`, `InventoryValuationService`) gives clean
+places to hook them in. A phased plan is in [§5](#5-improvement-roadmap).
+
+---
+
+## 2. What we have today
+
+### 2.1 Functional inventory (working and useful)
+
+| Area | What exists | Quality notes |
+|------|-------------|---------------|
+| **Product catalog** | `products`: name, type/category, price, compare-at price, barcode, image, description | Solid. `type` doubles as category (one level only) |
+| **Raw-material inventory** | `inventory_records`: qty in/out, damaged, unit cost, supplier name, storage location, **supplier AP fields** (invoice, total, paid, status, due date) | AP (payables) is genuinely implemented here — unlike AR on sales |
+| **FIFO costing** | [InventoryValuationService.php](../app/Services/InventoryValuationService.php): FIFO layers, stock value, period COGS, gross profit | Correct algorithm; but COGS is **recomputed at report time** from mutable rows, so historical profit can silently change |
+| **Production** | `productions`: batch ID, product, qty produced, damaged, materials JSON, date, staff, QC notes; creating a batch consumes raw materials | Materials stored as JSON blob → not queryable for cost-per-batch or recipe analytics |
+| **Sales (ERP + online)** | `sales` header + `sale_items` lines (product, batch, qty, unit price); single pipeline for admin and storefront orders via `SaleWorkflowService`; channel tagging (`sales_channel`) | Multi-line invoices work. Single pipeline for both channels is a good design decision |
+| **Expenses** | `expense_categories` + `expenses` (amount, currency, date, month/year indexes) | Recently added; properly indexed; not yet linked to suppliers or payment method |
+| **Dashboard & reports** | [AdminDashboardService.php](../app/Services/AdminDashboardService.php): revenue (Paid only), gross profit, FIFO stock value, pending payments, supplier balance, monthly charts, date-range filters; `ReportController` reuses it | Real KPIs, correct revenue-recognition rule (Paid only). Monthly charts group by `MONTH()` without year → mixes 2025 and 2026 data in one bar |
+| **E-commerce hub** | 18 admin modules (orders, payments, returns, inventory sync, analytics…) | Mostly **read-only re-framings of the same `sales` table**, not new capability — but good UX scaffolding for what comes next |
+| **Storefront** | Shop with filters, session cart, checkout with FIFO batch allocation and stock validation, gallery, contact, wishlist | Checkout correctly goes through the same sale workflow with stock checks |
+
+### 2.2 Architectural strengths to preserve
+
+- **Service layer exists** (`SaleWorkflowService`, `StorefrontCheckoutService`, `InventoryValuationService`,
+  `AdminDashboardService`) — business logic is not buried in controllers. New ledgers can hook in here.
+- **DB transactions** wrap sale creation/update.
+- **One sales pipeline** for storefront + admin (no parallel `orders` table to reconcile).
+- **FormRequest validation** on all admin writes.
+- Good internal documentation (`SYSTEM-MODULES.md`).
+
+---
+
+## 3. What we are missing (the gaps)
+
+### 3.1 Transaction & event history — the core gap
+
+The user's instinct is correct: **we do not capture transaction history.** Specifically:
+
+| Missing record | Today's behaviour | What it blocks |
+|----------------|-------------------|----------------|
+| **Payment transactions** | One enum field flipped from `Pending` → `Paid`. No amount, date, method, or receiver. Partial payments unrepresentable on sales | Cash-flow statements, AR aging, partial-payment tracking, payment-method analysis (MoMo vs cash vs bank), reconciliation, days-sales-outstanding |
+| **Stock movements** | `quantity_produced` decremented in place; raw materials via `quantity_out` aggregate per row | Stock audit ("why is stock 40, not 50?"), shrinkage detection, batch traceability, point-in-time stock reports, production yield |
+| **Status change history** | `payment_status` / `delivery_status` overwritten | Fulfilment lead time, courier performance, overdue ageing, "when was this actually delivered?" |
+| **Record edit history (audit log)** | Sale updates delete + recreate items; no log of who/what/when | Fraud/error detection, accountability, trustworthy financials |
+| **Price history** | `products.price` overwritten | Price-elasticity analysis, margin trend, "did the March price increase hurt volume?" (partially mitigated: `sale_items.unit_price` is snapshotted — good) |
+| **Cost snapshot at sale time** | COGS recomputed from live FIFO layers at report time | Stable historical margins; per-line profitability; reports that don't change when old inventory rows are edited |
+| **Abandoned carts** | Cart lives only in the PHP session and evaporates | Conversion-funnel analysis, recovery campaigns, demand signals for out-of-stock items |
+| **Storefront behaviour events** | Nothing (no page views, searches, add-to-cart events) | Conversion rate, product-page performance, search terms with zero results (= unmet demand) |
+
+### 3.2 Master data — entities that exist only as strings
+
+| Missing entity | Today | Consequence |
+|----------------|-------|-------------|
+| **Customers table** | Name/phone strings per sale; email hidden in `barcode`; address hidden in `invoice_number` | No CLV, retention, repeat-rate, RFM segmentation, credit-limit control, or even a reliable customer count. Typos fragment identity |
+| **Suppliers table** | `supplier_name` string per inventory record | No supplier scorecards (price trend, lead time, defect/damage rate), no consolidated payables per supplier |
+| **Raw-materials/BOM tables** | Materials consumed stored as a JSON blob on `productions` | No recipe costing, no "cost per bottle of Neza sauce", no material-usage forecasting |
+| **Payment methods** | Not captured anywhere | Channel-cost analysis impossible (MoMo fees vs cash) |
+
+### 3.3 Schema & data-integrity gaps
+
+- **No `amount_paid` / `due_date` / `discount` / `tax` / `delivery_fee` on sales** — `total_revenue`
+  is strictly `Σ qty × unit_price`. Real-world invoices with discounts or delivery charges can't be
+  represented, so reported revenue will drift from reality.
+- **Cascade deletes everywhere** (`sales.product_id`, `sale_items.*`, `productions.inventory_record_id`)
+  and **no soft deletes** on any business table. One product deletion = silent loss of financial history.
+- **Almost no indexes** on business tables: `sales.sale_date`, `sales.payment_status`,
+  `sales.sales_channel`, `sales.customer_name`, `inventory_records.record_date` are all unindexed.
+  Every dashboard load full-scans `sales`. Fine at 1k rows; painful at 100k.
+- **Misused columns** (`barcode` = email, `invoice_number` = address) make any export, integration,
+  or BI-tool connection produce garbage until cleaned.
+- **Returns are a status, not a transaction** — `delivery_status = Returned` with no returned
+  quantity, reason, refund amount, or restock action. Return-rate-by-product analysis impossible.
+- **`damaged` is captured but never analysed** — waste/shrinkage cost is invisible in reports.
+
+### 3.4 Reporting & analytics gaps
+
+- **Net profit is not computed anywhere.** Dashboard shows gross profit (revenue − COGS); `expenses`
+  exist in their own module but are never subtracted. The single most important number for an
+  owner — *"did we make money this month?"* — is not on any screen.
+- **No exports** (Excel/PDF) — FEATURES.md §4 is unimplemented; data is trapped in HTML tables.
+- **No comparisons** — no period-over-period (this month vs last), no targets/budgets vs actuals.
+- **No AR/AP aging buckets** (0–30/31–60/61–90/90+ days) — only raw totals.
+- **No inventory intelligence** — no reorder points, low-stock alerts, days-of-stock-remaining,
+  sell-through rate, or dead-stock identification.
+- **No forecasting** — no demand projection even via simple moving averages, despite having the
+  sales time series to support it.
+- Year-blind monthly charts (`MONTH()` without `YEAR()`), as noted above.
+
+### 3.5 Platform/operational gaps (briefly)
+
+- Single admin role — every user can do everything (no roles/permissions, so no separation between
+  cashier, production staff, and owner; also weakens the audit story).
+- No automated DB backup strategy visible in the repo.
+- Minimal test coverage for the financial logic (FIFO/COGS/sale workflow are exactly the parts
+  that deserve regression tests).
+- No customer accounts or order-status page on the storefront (customers must call to ask
+  "where is my order?").
+
+---
+
+## 4. Why this matters: decisions the business cannot make today
+
+| Business question | Why it's unanswerable today | What enables it |
+|---|---|---|
+| "How much cash will arrive in the next 30 days?" | No payment amounts/dates, no due dates on sales | Payments ledger + due dates → AR aging |
+| "Who are our 20 best customers? Are they buying more or less?" | No customer entity; identities fragmented across free-text names | Customers table + sales FK |
+| "What is the real profit per product?" | COGS recomputed from mutable data; expenses never allocated; discounts unrepresentable | Cost snapshot on sale lines + net-profit report |
+| "Which supplier gives the best price and least damage?" | Suppliers are strings; damage never aggregated | Suppliers table + receiving history |
+| "How long does delivery take, and is it getting worse?" | No delivered-at timestamp, status overwritten | Status-history events |
+| "What should we produce next week?" | No demand forecast; production history corrupted by stock decrements | Stock-movement ledger + immutable batch sizes + simple forecasting |
+| "Why is stock 40 when it should be 50?" | No movement ledger; mutations leave no trail | Stock-movement ledger |
+| "Did the storefront make money this quarter, after refunds?" | Returns have no amounts; channel revenue mixes pending and paid | Returns/refunds table + payments ledger |
+
+---
+
+## 5. Improvement roadmap
+
+Phased so each phase delivers value on its own and Phase 1 stops the ongoing data loss
+(every week of delay is history that can never be reconstructed).
+
+### Phase 1 — Stop losing data (foundation, highest urgency)
+
+1. **`sale_payments` table** — `sale_id, amount, method (Cash/MoMo/Bank/Card), paid_at, reference,
+   recorded_by, notes`. Derive `payment_status` and `amount_paid` from it (keep the columns as a
+   cached rollup). Add `due_date` to `sales`. This finally makes FEATURES.md §5 (AR) true.
+2. **`stock_movements` ledger** — `product_id, production_id, type (produced/sold/returned/damaged/adjustment),
+   quantity (+/−), reference (sale_item/production/manual), moved_at, user_id`.
+   **Stop decrementing `quantity_produced`**: keep it immutable as the historical batch size and
+   compute on-hand as `quantity_produced − Σ outbound movements` (or maintain a separate
+   `quantity_remaining`). Backfill from current data before switching.
+3. **`customers` table** — id, name, phone, **email**, address, district/province, created source
+   (storefront/admin). Add `customer_id` FK to `sales`; backfill by de-duplicating existing
+   name+phone pairs; keep legacy columns during transition. **Add real `customer_email` and
+   `delivery_address` columns and stop writing to `barcode`/`invoice_number`** (migrate existing
+   values out, since the docs already flag this as a recurring confusion).
+4. **`suppliers` table** — same treatment for `inventory_records.supplier_name`.
+5. **Integrity hardening** — change financial FKs from `cascadeOnDelete` to `restrict`; add
+   `SoftDeletes` to `products`, `sales`, `sale_items`, `productions`, `inventory_records`,
+   `customers`, `suppliers`; add an audit log (e.g. `spatie/laravel-activitylog`) on all
+   financial models; on sale update, log the before/after diff instead of silently
+   delete-and-recreate.
+6. **Indexes** — `sales (sale_date, payment_status, sales_channel, customer_id)`,
+   `sale_items (product_id, production_id)`, `inventory_records (record_date, product_id, payment_status)`.
+
+### Phase 2 — Capture richer transactions
+
+7. **`sale_status_events`** — `(sale_id, field, old_value, new_value, changed_at, user_id)`;
+   set `delivered_at` / `paid_at` convenience timestamps on `sales`. Enables lead-time and ageing analytics.
+8. **Sale financial fields** — `discount_amount`, `delivery_fee`, `tax_amount` on `sales`
+   (and per-line `discount` on `sale_items`); `total_revenue = Σ lines − discount + fee + tax`.
+9. **`sale_returns` table** — sale_item_id, quantity, reason, refund_amount, restocked (writes a
+   `stock_movements` row), processed_at. Replaces the bare `Returned` status.
+10. **COGS snapshot** — at sale-item creation, compute and store `unit_cost` on the line via the
+    FIFO service. Historical margins become immutable; per-line profitability becomes a simple query.
+11. **Expense upgrades** — `supplier_id`, `payment_method`, `paid/unpaid` status, receipt upload.
+12. **Persisted carts** — store carts in DB keyed by session/customer with status
+    (active/converted/abandoned); record a lightweight events table for storefront actions
+    (product views, searches, add-to-cart) — or wire up GA4/Plausible if self-hosting events is too much.
+13. **Roles & permissions** (e.g. `spatie/laravel-permission`): Owner / Manager / Sales / Production —
+    needed for the audit trail to mean anything.
+14. **Bill of materials** — normalize `raw_materials_used` JSON into `production_materials`
+    rows (production_id, inventory_record_id/material_id, quantity, unit_cost) → true cost per batch
+    and per unit produced.
+
+### Phase 3 — Turn data into decisions (analytics layer)
+
+15. **Net profit report** — Revenue (Paid) − COGS − Expenses, by month and by product/channel.
+    *The single highest-value report; trivial once Phases 1–2 land.*
+16. **Cash-flow & ageing** — AR/AP ageing buckets (0–30/31–60/61–90/90+), cash-in vs cash-out
+    timeline from `sale_payments` + supplier payments + expenses; expected-receipts forecast from due dates.
+17. **Customer analytics** — CLV, repeat-purchase rate, RFM segments, top customers, new-vs-returning
+    revenue split, churn flags (no purchase in N days).
+18. **Inventory intelligence** — reorder points + low-stock alerts (email/dashboard), days-of-stock
+    from rolling sales velocity, dead-stock report, shrinkage/damage cost report, production yield
+    (produced vs damaged vs materials consumed).
+19. **Sales analytics** — period-over-period comparisons, channel profitability (online vs offline,
+    net of fees/returns), product mix trends, price-vs-volume views from price history,
+    simple demand forecast (3-month weighted moving average with seasonality) to drive production planning.
+20. **Exports & delivery** — Excel (`maatwebsite/excel`) + PDF (`barryvdh/laravel-dompdf`) on every
+    report (completes FEATURES.md §4); a scheduled weekly owner-digest email (revenue, cash collected,
+    pending AR, low stock) via Laravel scheduler.
+21. **Fix year-blind charts** — group by `YEAR-MONTH` everywhere.
+22. **BI readiness** — once columns are clean (no emails in `barcode`), expose read-only reporting
+    views or a nightly extract so Metabase/Power BI can connect without touching production tables.
+
+### Cross-cutting (do alongside)
+
+- **Tests** for FIFO valuation, COGS, sale workflow, payment rollups — these are the numbers the
+  business will trust money to.
+- **Automated daily DB backups** with restore drills.
+- **Backfill strategy** for every new table (e.g. seed one synthetic `sale_payments` row for each
+  already-Paid sale, dated to `updated_at`, flagged `is_backfilled` so analysts can exclude estimates).
+
+---
+
+## 6. Suggested target data model (delta only)
+
+```mermaid
+erDiagram
+    CUSTOMERS ||--o{ SALES : places
+    SALES ||--o{ SALE_ITEMS : contains
+    SALES ||--o{ SALE_PAYMENTS : "paid via"
+    SALES ||--o{ SALE_STATUS_EVENTS : "tracked by"
+    SALE_ITEMS ||--o{ SALE_RETURNS : "may have"
+    SUPPLIERS ||--o{ INVENTORY_RECORDS : supplies
+    SUPPLIERS ||--o{ EXPENSES : "billed by"
+    PRODUCTIONS ||--o{ PRODUCTION_MATERIALS : consumes
+    PRODUCTS ||--o{ STOCK_MOVEMENTS : "moved as"
+    PRODUCTIONS ||--o{ STOCK_MOVEMENTS : "from batch"
+    SALE_ITEMS ||--o{ STOCK_MOVEMENTS : triggers
+```
+
+New tables: `customers`, `suppliers`, `sale_payments`, `sale_status_events`, `sale_returns`,
+`stock_movements`, `production_materials` (+ optional `carts`/`storefront_events`).
+Modified: `sales` (customer_id, customer_email, delivery_address, due_date, discount/fee/tax,
+delivered_at, paid_at, soft deletes), `sale_items` (unit_cost snapshot), `productions`
+(immutable quantity_produced), `expenses` (supplier_id, payment_method).
+
+---
+
+## 7. Priority matrix
+
+| Priority | Item | Effort | Why now |
+|----------|------|--------|---------|
+| 🔴 P0 | `sale_payments` ledger + AR fields | Medium | FEATURES.md claims it exists; it doesn't. Cash visibility is the owner's #1 need |
+| 🔴 P0 | `stock_movements` + immutable batch quantities | Medium | Every sale today **permanently destroys** production history |
+| 🔴 P0 | Customers table + fix `barcode`-as-email | Medium | Every new sale adds more unclean data to migrate later |
+| 🔴 P0 | Soft deletes + restrict cascades + audit log | Small | One mistaken delete currently erases financial history |
+| 🟠 P1 | Net profit report (revenue − COGS − expenses) | Small | Highest-value report; data mostly exists already |
+| 🟠 P1 | Status-event history + timestamps | Small | Cheap to add, unlocks lead-time/ageing analytics |
+| 🟠 P1 | Indexes on sales/inventory | Trivial | Prevents dashboard slowdown as data grows |
+| 🟠 P1 | Suppliers table; discounts/fees on sales | Medium | Completes AP picture; makes revenue figures honest |
+| 🟡 P2 | Returns table, COGS snapshot, BOM normalization | Medium | Margin accuracy and waste visibility |
+| 🟡 P2 | Exports (Excel/PDF), owner weekly digest | Small–Medium | Gets numbers into the owner's hands |
+| 🟢 P3 | CLV/RFM, forecasting, abandoned carts, BI views | Larger | The decision-making layer — depends on P0/P1 data capture |
+
+---
+
+## 8. Implementation log
+
+**2026-06-11 — Phase 1 + key Phase 2/3 items shipped:**
+
+| Item | Status | Where |
+|------|--------|-------|
+| `sale_payments` ledger (partial payments, methods, dates, who recorded) | ✅ Done | `app/Models/SalePayment.php`, record/remove UI on the sale detail page |
+| `amount_paid` / `due_date` / `paid_at` / `delivered_at` on sales; status derived from ledger ("Partially Paid" added) | ✅ Done | `Sale::recalculatePaymentState()` |
+| `stock_movements` ledger; `quantity_produced` now immutable, sellable stock moved to `quantity_remaining` | ✅ Done | `app/Models/StockMovement.php`, `SaleItem`, `Production`, `SaleWorkflowService` |
+| `customers` table + auto-resolve/dedupe on every sale; backfilled from history | ✅ Done | `/admin-app/customers` (lifetime value, balance due, purchase history) |
+| `suppliers` table + auto-link from inventory records; backfilled | ✅ Done | `/admin-app/suppliers` (AP balance, overdue invoices, delivery history) |
+| Email rescued from `barcode`, address from `invoice_number` → real `customer_email` / `delivery_address` columns | ✅ Done | Migration backfill + checkout/forms write the new columns |
+| `sale_status_events` history + timeline UI | ✅ Done | Sale detail page timeline |
+| Soft deletes on customers/suppliers | ✅ Done | Archive instead of destroy |
+| Reporting indexes (sale_date, payment_status, channel, record_date…) | ✅ Done | `2026_06_11_100009` migration |
+| Net profit (revenue − COGS − expenses) + P&L statement | ✅ Done | Dashboard card + Reports P&L section |
+| AR/AP aging buckets (current/30/60/90+) | ✅ Done | Reports page |
+| Cash collected KPI (from payments ledger) | ✅ Done | Dashboard + Reports |
+
+**2026-06-14 — Roles, multi-user access control & employee performance:**
+
+| Item | Status | Where |
+|------|--------|-------|
+| Four roles on users (Owner / Manager / Sales / Production) + is_active, phone, sales_target, commission_rate, last_login_at, employee link | ✅ Done | `users` migration, `App\Models\User` |
+| Capability gates (view-analytics, manage-catalog, manage-users, record-sales, manage-all-sales, record-production, delete-records); owner bypass; inactive lockout | ✅ Done | `AppServiceProvider::boot()` |
+| Route groups gated by ability; inactive accounts force-logged-out mid-session | ✅ Done | `routes/admin.php`, `EnsureAdminSession` |
+| Login blocks inactive, stamps `last_login_at`, role-based landing redirect | ✅ Done | `Auth\LoginController`, `User::homeRoute()` |
+| Per-transaction attribution: `created_by` stamped on every sale and production | ✅ Done | `Sale`/`Production` model `creating` hooks |
+| Data scoping: Sales users see/edit only their own sales (+ payments); Production users only their own batches; deletes reserved for owner/manager | ✅ Done | `SaleController`, `SalePaymentController`, `ProductionController` |
+| Role-aware sidebar + role badge; account lifecycle in user CRUD (role, status, target, commission, employee) with last-active-owner protection | ✅ Done | `layouts/admin`, `users/*`, `role-badge` component |
+| Team Performance report: per-staff sales leaderboard (orders, revenue, avg sale, cash collected, target attainment, commission) + production output/damage rate | ✅ Done | `/admin-app/team-performance` |
+| Production batches linked to a real `employee_id` (worker), not free text; `responsible_staff` auto-synced from the employee name; backfilled by matching old text. Production output is now attributed to the assigned **worker** (measurable even for staff with no login), while `created_by` still records who entered it | ✅ Done | `productions.employee_id` migration, `Production` model, production form, `TeamPerformanceController` |
+
+**Still open (next priorities):** soft deletes + restrict-cascade on sales/products, COGS
+snapshot on sale lines, returns/refunds table, BOM normalization, exports (Excel/PDF),
+year-aware monthly charts, attendance/time tracking, granular per-permission packages,
+persisted carts/storefront events. **Note:** `created_by` is null for pre-rollout sales and
+online-store orders (no logged-in staff) — these are excluded from the leaderboard by design.
+
+---
+
+*Assessment generated from direct review of migrations, models, services, controllers and docs in this repository. Update alongside `SYSTEM-MODULES.md` as phases land.*
