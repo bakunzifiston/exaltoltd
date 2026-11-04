@@ -63,16 +63,13 @@
         @endif
 
         @can('delete-records')
-            @if ($sample->status !== 'approved')
-                <form method="POST" action="{{ route('admin.production-samples.destroy', $sample) }}" onsubmit="return confirm('Delete sample {{ $sample->reference }}? This cannot be undone.')" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-5">
-                    @csrf
-                    @method('DELETE')
-                    <p class="text-sm text-rose-900">This sample has no effect on stock. Deleting it removes the request and its documents.</p>
-                    <button type="submit" class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Delete sample</button>
-                </form>
-            @else
-                <p class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">To delete this sample, first use "Reverse and restock" above. That returns the units to the batch; then the sample can be deleted.</p>
-            @endif
+            @php($restocks = $sample->status === 'approved')
+            <form method="POST" action="{{ route('admin.production-samples.destroy', $sample) }}" onsubmit="return confirm('Delete sample {{ $sample->reference }}?{{ $restocks ? ' Its units will be put back into the batch first.' : '' }} This cannot be undone.')" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-5">
+                @csrf
+                @method('DELETE')
+                <p class="text-sm text-rose-900">{{ $restocks ? 'This sample is approved, so its units left stock. Deleting it puts them back into the batch and records the reversal, then removes the sample and its documents.' : 'This sample has no effect on stock. Deleting it removes the request and its documents.' }}</p>
+                <button type="submit" class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Delete sample</button>
+            </form>
         @endcan
 
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">

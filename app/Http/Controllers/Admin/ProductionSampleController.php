@@ -144,27 +144,26 @@ class ProductionSampleController extends Controller
     }
 
     /**
-     * Removes a sample request that has no stock effect. An approved sample has taken units off its
-     * batch, so it must be reversed first ("Reverse and restock", which puts them back and records
-     * the movement); only then can it be deleted. Its attached documents go with it.
+     * Deletes a sample. An approved sample has taken units off its batch, so those units are put
+     * back first (the same reversal as "Reverse and restock", with its stock movement), then the
+     * sample goes. Its attached documents are removed with it.
      */
     public function destroy(Request $request, ProductionSample $productionSample): RedirectResponse
     {
         abort_unless($request->user()->can('delete-records'), 403);
 
-        if ($productionSample->status === ProductionSample::APPROVED) {
-            return back()->withErrors([
-                'sample' => $productionSample->reference.' is approved, so its units have left stock. Open it and use "Reverse and restock" first, then delete it.',
-            ]);
-        }
-
         $reference = $productionSample->reference;
-        DB::transaction(function () use ($productionSample): void {
+        $restocked = $productionSample->status === ProductionSample::APPROVED;
+
+        DB::transaction(function () use ($request, $productionSample, $restocked): void {
+            if ($restocked) {
+                $this->samples->cancel($productionSample, $request->user(), 'Sample deleted by '.$request->user()->name);
+            }
             $productionSample->documents()->get()->each->delete();
             $productionSample->delete();
         });
 
-        return redirect()->route('admin.production-samples.index')->with('status', 'Sample '.$reference.' deleted.');
+        return redirect()->route('admin.production-samples.index')->with('status', 'Sample '.$reference.' deleted'.($restocked ? '; its units were put back into the batch.' : '.'));
     }
 
     public function uploadDocuments(Request $request, ProductionSample $productionSample): RedirectResponse

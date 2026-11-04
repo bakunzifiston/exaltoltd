@@ -87,7 +87,7 @@ function initBulkTable(table) {
     bar.querySelector('[data-delete]').addEventListener('click', () => {
         const ids = selected().map((b) => b.value);
         if (!ids.length) return;
-        if (!confirm(`Delete ${ids.length} selected ${label}? This cannot be undone. Records that are in use will be skipped and listed.`)) return;
+        if (!confirm(`Delete ${ids.length} selected ${label}? This cannot be undone. ${table.dataset.bulkNote ? table.dataset.bulkNote + ' ' : ''}Records that are in use will be skipped and listed.`)) return;
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = url;

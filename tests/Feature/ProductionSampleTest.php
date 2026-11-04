@@ -153,41 +153,37 @@ class ProductionSampleTest extends TestCase
         $this->actingAs($this->worker)->get(route('admin.production-samples.show', $sample))->assertOk();
     }
 
-    public function test_a_sample_can_be_deleted_only_once_it_has_no_stock_effect(): void
+    public function test_deleting_an_approved_sample_puts_the_units_back_first(): void
     {
         $this->request($this->worker, 12);
         $sample = ProductionSample::firstOrFail();
         $this->actingAs($this->manager)->post(route('admin.production-samples.approve', $sample));
         $this->assertEquals(288, $this->batch->fresh()->quantity_remaining);
 
-        // Approved: refused, stock and record untouched. Production staff may not delete at all.
+        // Production staff may not delete.
         $this->actingAs($this->worker)->delete(route('admin.production-samples.destroy', $sample))->assertForbidden();
-        $this->actingAs($this->manager)->delete(route('admin.production-samples.destroy', $sample))->assertSessionHasErrors('sample');
         $this->assertDatabaseHas('production_samples', ['id' => $sample->id]);
-        $this->assertEquals(288, $this->batch->fresh()->quantity_remaining);
 
-        // Reverse it (units return to the batch), then it can be deleted.
-        $this->actingAs($this->manager)->post(route('admin.production-samples.cancel', $sample), ['decision_notes' => 'Entered by mistake']);
-        $this->assertEquals(300, $this->batch->fresh()->quantity_remaining);
         $this->actingAs($this->manager)->delete(route('admin.production-samples.destroy', $sample))
             ->assertRedirect(route('admin.production-samples.index'))->assertSessionHasNoErrors();
+
         $this->assertDatabaseMissing('production_samples', ['id' => $sample->id]);
-        $this->assertEquals(300, $this->batch->fresh()->quantity_remaining);
+        $this->assertEquals(300, $this->batch->fresh()->quantity_remaining, 'The 12 units must return to the batch.');
+        $this->assertEquals(12, StockMovement::where('type', 'sample_reversal')->value('quantity'));
     }
 
-    public function test_bulk_delete_skips_approved_samples_and_removes_the_rest(): void
+    public function test_a_pending_sample_deletes_without_touching_stock_and_bulk_delete_handles_mixed_samples(): void
     {
         $this->request($this->worker, 5);
         $this->request($this->worker, 6);
         [$pending, $toApprove] = ProductionSample::orderBy('id')->get()->all();
         $this->actingAs($this->manager)->post(route('admin.production-samples.approve', $toApprove));
+        $this->assertEquals(294, $this->batch->fresh()->quantity_remaining);
 
         $this->actingAs($this->manager)->post(route('admin.bulk-delete', 'production-samples'), ['ids' => [$pending->id, $toApprove->id]]);
 
-        $result = session('bulk_result');
-        $this->assertSame(1, $result['deleted']);
-        $this->assertCount(1, $result['skipped']);
-        $this->assertDatabaseMissing('production_samples', ['id' => $pending->id]);
-        $this->assertDatabaseHas('production_samples', ['id' => $toApprove->id]);
+        $this->assertSame(2, session('bulk_result')['deleted']);
+        $this->assertSame(0, ProductionSample::count());
+        $this->assertEquals(300, $this->batch->fresh()->quantity_remaining);
     }
 }
