@@ -10,6 +10,8 @@ use App\Models\Employee;
 use App\Models\InventoryRecord;
 use App\Models\Product;
 use App\Models\Production;
+use App\Models\ProductionSample;
+use App\Models\SaleItem;
 use App\Services\ProductionCostingService;
 use App\Services\TraceabilityService;
 use App\Support\TablePageSize;
@@ -156,11 +158,49 @@ class ProductionController extends Controller
         return redirect()->route('admin.productions.show', $production)->with('status', 'Production updated successfully.');
     }
 
-    public function destroy(Production $production): RedirectResponse
+    public function destroy(Request $request, Production $production): RedirectResponse
     {
-        abort_unless(request()->user()->can('delete-records'), 403);
+        abort_unless($request->user()->can('delete-records'), 403);
 
-        $production->delete();
+        $lineIds = SaleItem::query()->where('production_id', $production->id)->pluck('id');
+        $samples = ProductionSample::query()->where('production_id', $production->id)->get();
+
+        // Customer returns point at the sale lines themselves, so those can never be removed.
+        if ($lineIds->isNotEmpty() && DB::table('stock_return_items')->whereIn('sale_item_id', $lineIds)->exists()) {
+            return back()->withErrors(['production' => 'Stock returns are recorded against sales made from batch '.$production->batch_id.', so it cannot be deleted.']);
+        }
+
+        // Sale lines and free samples taken from this batch would go with it, so ask first.
+        if (($lineIds->isNotEmpty() || $samples->isNotEmpty()) && ! $request->boolean('force')) {
+            $sales = SaleItem::query()->whereIn('id', $lineIds)->distinct()->count('sale_id');
+            $parts = [];
+            if ($lineIds->isNotEmpty()) {
+                $parts[] = $lineIds->count().' sale line'.($lineIds->count() === 1 ? '' : 's').' in '.$sales.' sale'.($sales === 1 ? '' : 's').' (those sales keep their recorded revenue but lose these lines, and their cost of goods)';
+            }
+            if ($samples->isNotEmpty()) {
+                $parts[] = $samples->count().' production sample'.($samples->count() === 1 ? '' : 's').' ('.$samples->pluck('reference')->implode(', ').')';
+            }
+
+            return back()->with('force_prompt', [
+                'module' => 'productions',
+                'label' => 'productions',
+                'ids' => [$production->id],
+                'items' => [[
+                    'name' => $production->batch_id.' (#'.$production->id.')',
+                    'detail' => 'Deleting this batch will also permanently delete '.implode(' and ', $parts).'. Its raw materials go back to stock.',
+                ]],
+            ]);
+        }
+
+        DB::transaction(function () use ($production, $samples, $lineIds): void {
+            // The batch is going, so a sample's units are not put back; its documents are removed.
+            $samples->each(function (ProductionSample $sample): void {
+                $sample->documents()->get()->each->delete();
+                $sample->delete();
+            });
+            SaleItem::query()->whereIn('id', $lineIds)->delete();
+            $production->delete();
+        });
 
         return redirect()->route('admin.productions.index')->with('status', 'Production deleted successfully.');
     }

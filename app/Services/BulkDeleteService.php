@@ -57,7 +57,7 @@ class BulkDeleteService
 
     /**
      * @param  array<int, int|string>  $ids
-     * @return array{deleted: int, skipped: array<int, array{name: string, reason: string}>, label: string}
+     * @return array{deleted: int, skipped: array<int, array{name: string, reason: string}>, label: string, confirm: ?array}
      */
     public function delete(string $key, array $ids, User $user): array
     {
@@ -76,22 +76,32 @@ class BulkDeleteService
 
         $deleted = 0;
         $skipped = [];
+        $confirm = null;
 
         foreach ($records as $record) {
-            $reason = $this->deleteOne($controller, $method, $model, $record);
-            if ($reason === null) {
+            [$reason, $prompt] = $this->deleteOne($controller, $method, $model, $record);
+            if ($prompt !== null) {
+                // The record is in use but may be deleted if the user confirms; ask once for the whole batch.
+                $confirm ??= ['module' => $key, 'label' => $module['label'], 'ids' => [], 'items' => []];
+                $confirm['ids'] = array_merge($confirm['ids'], $prompt['ids']);
+                $confirm['items'] = array_merge($confirm['items'], $prompt['items']);
+            } elseif ($reason === null) {
                 $deleted++;
             } else {
-                $skipped[] = ['name' => $this->nameOf($record), 'reason' => $reason];
+                $skipped[] = ['name' => $this->describe($record), 'reason' => $reason];
             }
         }
 
         // Ids that no longer exist (deleted in another tab) are not an error, just nothing to do.
-        return ['deleted' => $deleted, 'skipped' => $skipped, 'label' => $module['label']];
+        return ['deleted' => $deleted, 'skipped' => $skipped, 'label' => $module['label'], 'confirm' => $confirm];
     }
 
-    /** Runs the controller's own destroy for one record. Returns null on success, or why it was refused. */
-    private function deleteOne(object $controller, string $method, string $model, Model $record): ?string
+    /**
+     * Runs the controller's own destroy for one record.
+     *
+     * @return array{0: ?string, 1: ?array} [why it was refused or null, a "delete anyway?" prompt or null]
+     */
+    private function deleteOne(object $controller, string $method, string $model, Model $record): array
     {
         $session = app('session.store');
         $reason = null;
@@ -119,16 +129,18 @@ class BulkDeleteService
         // A refused delete returns a redirect carrying the reason; take it, then clear it so it
         // is not shown a second time on the next page.
         $refusal = $session->get('errors')?->getBag('default')->first() ?: $session->get('warning');
-        $session->forget(['errors', 'warning', 'status']);
+        $prompt = $session->get('force_prompt');
+        $session->forget(['errors', 'warning', 'status', 'force_prompt']);
 
         if ($reason === null && $model::query()->whereKey($record->getKey())->exists()) {
             $reason = $refusal ?: 'Could not be deleted.';
         }
 
-        return $reason;
+        return [$reason, $reason !== null && is_array($prompt) ? $prompt : null];
     }
 
-    private function nameOf(Model $record): string
+    /** A short, recognisable name for a record in messages. */
+    public function describe(Model $record): string
     {
         $id = '#'.$record->getKey();
 

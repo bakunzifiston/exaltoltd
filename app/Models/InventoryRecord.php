@@ -104,6 +104,19 @@ class InventoryRecord extends Model
             || $this->movements()->where('type', 'consumption')->exists();
     }
 
+    /**
+     * Batch codes that drew materials from this delivery.
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    public function batchesUsingThis(): \Illuminate\Support\Collection
+    {
+        return Production::query()->get(['id', 'batch_id', 'inventory_record_id'])
+            ->filter(fn (Production $p) => collect(Production::normalizeMaterials($p->inventory_record_id))
+                ->contains(fn ($m) => (int) ($m['inventory_id'] ?? 0) === (int) $this->getKey()))
+            ->pluck('batch_id')->unique()->values();
+    }
+
     public function getIsExpiredAttribute(): bool
     {
         return $this->expiry_date !== null && $this->expiry_date->isPast();
