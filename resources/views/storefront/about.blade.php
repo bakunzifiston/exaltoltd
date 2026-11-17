@@ -1,4 +1,4 @@
-<x-layouts.storefront title="About Us" description="Exalto Engineering and Supply Solutions Ltd was founded on a love for Rwanda's agricultural bounty and a drive for engineering excellence.">
+<x-layouts.storefront title="About Us" description="Exalto Green Ltd was founded on a love for Rwanda's agricultural bounty and a drive for engineering excellence.">
     <x-storefront.page-hero eyebrow="About Us" title="Engineering excellence meets Rwanda’s agricultural bounty." />
 
     <section class="bg-off-white">
@@ -6,7 +6,7 @@
             <div>
                 <h2 class="text-2xl font-bold text-[#012b51] sm:text-3xl">Our Story</h2>
                 <div class="mt-5 space-y-4 text-base leading-relaxed text-slate-700">
-                    <p>EXALTO ENGINEERING AND SUPPLY SOLUTIONS LTD was founded on a dual passion: a love for Rwanda’s rich agricultural bounty and a drive for engineering excellence.</p>
+                    <p>EXALTO GREEN LTD was founded on a dual passion: a love for Rwanda’s rich agricultural bounty and a drive for engineering excellence.</p>
                     <p>We saw an opportunity to elevate two of our country’s natural treasures, sugarcane and passion fruit, into premium beverages. By applying meticulous engineering principles to the art of beverage making, we developed a unique process that captures the authentic taste and vitality of our ingredients.</p>
                     <p>From our base in Rwanda, we are not just a company; we are a team of innovators dedicated to quality, sustainability, and the growth of Rwanda’s agro-processing industry.</p>
                 </div>

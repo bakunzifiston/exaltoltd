@@ -12,7 +12,7 @@
             'image' => $details->image_path ? [asset('storage/'.$details->image_path)] : [asset('images/logo-square.png')],
             'sku' => $details->sku ?? $details->barcode,
             'gtin' => preg_match('/^\d{8}(\d{4,6})?$/', (string) $details->barcode) ? $details->barcode : null,
-            'brand' => ['@type' => 'Brand', 'name' => ($siteSettings['company_name'] ?? 'Exalto Engineering and Supply Solutions Ltd')],
+            'brand' => ['@type' => 'Brand', 'name' => ($siteSettings['company_name'] ?? 'Exalto Green Ltd')],
             'manufacturer' => ['@id' => url('/').'#organization'],
             'offers' => [
                 '@type' => 'Offer',

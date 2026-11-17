@@ -273,7 +273,7 @@ class StorefrontController extends Controller
 
         return redirect()
             ->route('storefront.contact')
-            ->with('status', 'Thank you. Your inquiry has been sent to Exalto Engineering and Supply Solutions Ltd. We will be in touch shortly.');
+            ->with('status', 'Thank you. Your inquiry has been sent to Exalto Green Ltd. We will be in touch shortly.');
     }
 
     public function cart(): View

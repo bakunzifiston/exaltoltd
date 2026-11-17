@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @php($pageTitle = ($title ?? 'Home').' - '.($siteSettings['company_name'] ?? 'Exalto Engineering and Supply Solutions Ltd'))
+    @php($pageTitle = ($title ?? 'Home').' - '.($siteSettings['company_name'] ?? 'Exalto Green Ltd'))
     <title>{{ $pageTitle }}</title>
     <x-storefront.seo-head :title="$pageTitle" :description="$description ?? null" :image="$image ?? null" :type="$ogType ?? ($attributes->get('og-type') ?? 'website')" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,7 +65,7 @@
             <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-4 lg:px-8">
                 <div>
                     <img src="{{ asset('images/brand/exalto-green-symbol.svg') }}" alt="" width="44" height="46" class="mb-3 h-11 w-auto rounded-lg bg-white p-1.5" aria-hidden="true">
-                    <h3 class="text-base font-semibold">{{ $siteSettings['company_name'] ?? 'Exalto Engineering and Supply Solutions Ltd' }}</h3>
+                    <h3 class="text-base font-semibold">{{ $siteSettings['company_name'] ?? 'Exalto Green Ltd' }}</h3>
                     <p class="mt-1 text-sm font-semibold text-[#cb8d20]">The Essence of Rwanda, Naturally Crafted.</p>
                     @if($primaryAddress)
                         <p class="mt-3 text-sm text-slate-200">{{ $primaryAddress->value }}</p>
@@ -101,7 +101,7 @@
                         @csrf
                         <input type="hidden" name="name" value="Newsletter Subscriber">
                         <input type="hidden" name="subject" value="Newsletter Subscription">
-                        <input type="hidden" name="message" value="Please subscribe me to Exalto Engineering and Supply Solutions Ltd newsletter updates.">
+                        <input type="hidden" name="message" value="Please subscribe me to Exalto Green Ltd newsletter updates.">
                         <input type="text" name="phone" placeholder="Phone (optional)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <input type="email" name="email" required placeholder="Email address" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <button class="w-full rounded-lg bg-[#cb8d20] px-3 py-2 text-sm font-semibold text-white hover:bg-[#b27a1b]">Subscribe</button>

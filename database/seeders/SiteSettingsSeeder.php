@@ -13,7 +13,7 @@ class SiteSettingsSeeder extends Seeder
     {
         // ── General settings ──────────────────────────────────────────────────
         $settings = [
-            ['key' => 'company_name',    'value' => 'Exalto Engineering and Supply Solutions Ltd',                    'group' => 'general', 'type' => 'text'],
+            ['key' => 'company_name',    'value' => 'Exalto Green Ltd',                    'group' => 'general', 'type' => 'text'],
             ['key' => 'company_tagline', 'value' => 'The Essence of Rwanda, Naturally Crafted.',        'group' => 'general', 'type' => 'text'],
             ['key' => 'meta_description', 'value' => 'Exalto transforms Rwanda\'s finest sugarcane and passion fruit into exceptional natural wines and juices. The Essence of Rwanda, Naturally Crafted.', 'group' => 'general', 'type' => 'text'],
             ['key' => 'hours_weekday',   'value' => 'Mon–Fri · 8:30–17:30',         'group' => 'contact', 'type' => 'text'],

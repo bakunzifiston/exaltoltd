@@ -7,7 +7,7 @@
 --}}
 @props(['title', 'description' => null, 'image' => null, 'type' => 'website'])
 @php
-    $company = $siteSettings['company_name'] ?? 'Exalto Engineering and Supply Solutions Ltd';
+    $company = $siteSettings['company_name'] ?? 'Exalto Green Ltd';
     $description = \Illuminate\Support\Str::limit(trim(strip_tags($description ?: ($siteSettings['meta_description'] ?? '') ?: 'Exalto transforms Rwanda\'s finest sugarcane and passion fruit into exceptional natural wines and juices. The Essence of Rwanda, Naturally Crafted.')), 160, '');
     $image = $image ?: asset('images/og-default.png');
     $canonical = url()->current();
