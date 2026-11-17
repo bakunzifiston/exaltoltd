@@ -11,25 +11,33 @@
                 'A unique alternative to traditional grape wines, perfect for social gatherings or as an aperitif.',
             ],
             'cta' => 'View Tasting Notes & Pairings',
+            'url' => 'storefront.shop',
         ],
         [
-            'name' => 'Exalto Pure Passion Fruit Juice',
-            'edition' => 'La Vie Passion Juice',
-            'image' => 'images/storefront/beverage-passion-juice.jpg',
-            'alt' => 'La Vie passion juice bottles in a basket with fresh passion fruits',
+            'name' => 'Precision Engineering',
+            'edition' => 'Exalto Engineering',
+            'image' => 'images/storefront/hero-exalto.jpg',
+            'alt' => 'An Exalto engineer reviewing plans beside irrigation works, with sugarcane and passion fruit fields behind',
+            'cover' => true,
             'points' => [
-                'A burst of tropical sunshine in a bottle. Tangy, aromatic, and intensely flavourful.',
-                'Cold-pressed from ripe, locally sourced passion fruits to preserve nutrients and taste.',
-                'A healthy, refreshing beverage rich in vitamins and antioxidants.',
+                'Precise, dependable engineering, built to last.',
+                'Meticulous engineering principles applied to the art of beverage making.',
+                'Gentle pressing and extraction, precisely managed fermentation and multi-stage filtration.',
+                'An efficient, water-saving process that turns organic by-products into natural fertilizer.',
             ],
-            'cta' => 'Discover Health Benefits',
+            'cta' => 'See Our Process',
+            'url' => 'storefront.process',
         ],
     ];
 @endphp
 @foreach($beverages as $b)
     <article class="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:flex-row">
         <div class="flex shrink-0 items-center justify-center bg-white p-4 sm:w-48">
-            <img src="{{ asset($b['image']) }}" alt="{{ $b['alt'] }}" loading="lazy" class="h-56 w-auto object-contain sm:h-64">
+            @if(!empty($b['cover']))
+                <img src="{{ asset($b['image']) }}" alt="{{ $b['alt'] }}" loading="lazy" class="h-56 w-full rounded-xl object-cover object-[78%_50%] sm:h-64">
+            @else
+                <img src="{{ asset($b['image']) }}" alt="{{ $b['alt'] }}" loading="lazy" class="h-56 w-auto object-contain sm:h-64">
+            @endif
         </div>
         <div class="flex flex-1 flex-col p-6">
             <p class="text-xs font-semibold uppercase tracking-wide text-[#0d6a3a]">{{ $b['edition'] }}</p>
@@ -39,7 +47,7 @@
                     <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#cb8d20]" aria-hidden="true"></span><span>{{ $point }}</span></li>
                 @endforeach
             </ul>
-            <a href="{{ route('storefront.shop') }}" class="mt-6 inline-flex w-fit items-center rounded-lg bg-[#012b51] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#011f3a]">{{ $b['cta'] }}</a>
+            <a href="{{ route($b['url']) }}" class="mt-6 inline-flex w-fit items-center rounded-lg bg-[#012b51] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#011f3a]">{{ $b['cta'] }}</a>
         </div>
     </article>
 @endforeach
